@@ -23,12 +23,12 @@ class PostModelTest(TestCase):
         )
 
     def test_post_str_max_length_not_exceed(self):
-        len_post = len(str(self.post))
-        self.assertEqual(len_post, 15)
+        post = Post.objects.first()
+        self.assertEqual(str(post), self.post.text[:15])
 
     def test_group_slug(self):
-        title = self.post.group
-        self.assertEqual(str(title), self.group.title)
+        group = Group.objects.first()
+        self.assertEqual(str(group.title), self.group.title)
 
     def test_help_text_post(self):
         field_help_texts = {

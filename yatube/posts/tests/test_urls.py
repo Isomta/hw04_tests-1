@@ -1,5 +1,8 @@
+from http import HTTPStatus
+
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
+from django.urls import reverse
 
 from posts.models import Group, Post
 
@@ -29,25 +32,55 @@ class PostsURLTests(TestCase):
         self.not_author_client = Client()
         self.author_client.force_login(self.author)
         self.not_author_client.force_login(self.not_author)
-        self.templates_url_names = {
-            'posts/index.html': '/',
-            'posts/group_list.html': f'/group/{self.group.slug}/',
-            'posts/profile.html': f'/profile/{self.author.username}/',
-            'posts/post_detail.html': f'/posts/{self.post.id}/',
-            'posts/create_post.html': f'/posts/{self.post.id}/edit/',
-            'posts/create_post.html': '/create/',
-        }
+        self.templates_url_names = (
+            ('posts/index.html', 'posts:index', None),
+            ('posts/group_list.html', 'posts:group_posts', [self.group.slug]),
+            ('posts/profile.html', 'posts:profile', [self.author.username]),
+            ('posts/create_post.html', 'posts:post_edit', [self.post.id]),
+            ('posts/post_detail.html', 'posts:post_detail', [self.post.id]),
+            ('posts/create_post.html', 'posts:post_create', None),
+        )
 
-    def test_urls_uses_correct_template(self):
-        for template, address in self.templates_url_names.items():
+    def func_assertRedirects(self, response, url):
+        self.assertRedirects(response, url)
+
+    def func_assertEqualTemplateUsed(self, response):
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertTemplateUsed(response, self.template)
+
+    def test_url_author(self):
+        for self.template, address, args in self.templates_url_names:
             with self.subTest(address=address):
-                response = self.author_client.get(address)
-                self.assertTemplateUsed(response, template)
-        response = self.not_author_client.get(f'/posts/{self.post.id}/edit/')
-        self.assertRedirects(
-            response, (f'/posts/{self.post.id}/')
+                response = self.author_client.get(reverse(address, args=args))
+                self.func_assertEqualTemplateUsed(response)
+
+    def test_url_not_author(self):
+        space_name = (
+            'posts:post_edit',
         )
-        response = self.guest_client.get('/create/')
-        self.assertRedirects(
-            response, ('/auth/login/?next=/create/')
+        for self.template, address, args in self.templates_url_names:
+            with self.subTest(address=address):
+                response = self.not_author_client.get(
+                    reverse(address, args=args)
+                )
+                if address in space_name:
+                    url = reverse('posts:post_detail', args=args)
+                    self.func_assertRedirects(response, url)
+                else:
+                    self.func_assertEqualTemplateUsed(response)
+
+    def test_url_guest(self):
+        space_name = (
+            'posts:post_edit',
+            'posts:post_create',
         )
+        for self.template, address, args in self.templates_url_names:
+            with self.subTest(address=address):
+                response = self.guest_client.get(reverse(address, args=args))
+                if address in space_name:
+                    user_login = reverse('users:login')
+                    action = reverse(address, args=args)
+                    url = f'{user_login}?next={action}'
+                    self.func_assertRedirects(response, url)
+                else:
+                    self.func_assertEqualTemplateUsed(response)

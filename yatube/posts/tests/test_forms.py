@@ -31,7 +31,6 @@ class PostCreateFormTests(TestCase):
     def test_create_post(self):
         form_data = {
             'text': 'Тестовый текст',
-            'group': self.group.id,
         }
         response = self.author_client.post(
             reverse('posts:post_create'),
@@ -59,3 +58,4 @@ class PostCreateFormTests(TestCase):
             group=form_data['group']
         )
         self.assertEqual(post.text, form_data['text'])
+        self.assertEqual(post.group.title, self.group.title)
