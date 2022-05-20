@@ -1,6 +1,11 @@
+import shutil
+import tempfile
+
 from django import forms
+from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.test import Client, TestCase
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
 from posts.models import Group, Post
@@ -15,8 +20,10 @@ CL = 10
 NO_GROUP_COUNT = 3
 INDEX_PAGE2_COUNT = GROUP_COUNT + NO_GROUP_COUNT - CL
 GROUP_PAGE2_COUNT = GROUP_COUNT - CL
+TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
 
+@override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
 class PostsURLTests(TestCase):
     @classmethod
     def setUpClass(cls):
@@ -40,34 +47,27 @@ class PostsURLTests(TestCase):
                     author=cls.another_author,
                 )
 
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
+        
     def setUp(self):
         self.author_client = Client()
         self.author_client.force_login(self.author)
-        self.templates_url_names = {
-            'posts/index.html': reverse('posts:index'),
-            'posts/group_list.html': reverse(
-                'posts:group_posts',
-                kwargs={'slug': self.group.slug}
-            ),
-            'posts/profile.html': reverse(
-                'posts:profile',
-                kwargs={'username': self.author.username}
-            ),
-            'posts/create_post.html': reverse(
-                'posts:post_edit',
-                kwargs={'post_id': self.post.id}
-            ),
-            'posts/post_detail.html': reverse(
-                'posts:post_detail',
-                kwargs={'post_id': self.post.id}
-            ),
-            'posts/create_post.html': reverse('posts:post_create'),
-        }
+        self.templates_url_names = (
+            ('posts/index.html', 'posts:index', None,),
+            ('posts/group_list.html', 'posts:group_posts', (self.group.slug,)),
+            ('posts/profile.html', 'posts:profile', (self.author.username,)),
+            ('posts/create_post.html', 'posts:post_edit', (self.post.id,)),
+            ('posts/post_detail.html', 'posts:post_detail', (self.post.id,)),
+            ('posts/create_post.html', 'posts:post_create', None,),
+        )
 
     def test_views_posts_correct_template(self):
-        for template, address in self.templates_url_names.items():
+        for template, address, args in self.templates_url_names:
             with self.subTest(address=address):
-                response = self.author_client.get(address)
+                response = self.author_client.get(reverse(address, args=args))
                 self.assertTemplateUsed(response, template)
         response = self.author_client.get(reverse(
             'posts:post_delete',
@@ -176,8 +176,47 @@ class PostsURLTests(TestCase):
             kwargs={'username': new_user.username})
         )
         self.assertEqual(response.context['page_obj'][0].text, post.text)
+        
         response = self.author_client.get(reverse(
             'posts:group_posts',
             kwargs={'slug': self.post.group.slug})
         )
         self.assertNotEqual(response.context['page_obj'][0].group, post.group)
+
+    def test_post_has_image(self):
+        test_jpg = (            
+             b'\x47\x49\x46\x38\x39\x61\x02\x00'
+             b'\x01\x00\x80\x00\x00\x00\x00\x00'
+             b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
+             b'\x00\x00\x00\x2C\x00\x00\x00\x00'
+             b'\x02\x00\x01\x00\x00\x02\x02\x0C'
+             b'\x0A\x00\x3B'
+        )
+        name='test.jpg'
+        uploaded = SimpleUploadedFile(
+            name=name,
+            content=test_jpg,
+            content_type='image/jpg'
+        )
+        Post.objects.create(
+                text=POST_TEXT,
+                author=self.author,
+                group=self.group,
+                image = uploaded,
+            )
+        post = Post.objects.first()
+        url_name = (
+            ('posts:index', None),
+            ('posts:profile', (self.author.username,)),
+            ('posts:group_posts', (self.group.slug,)),
+            ('posts:post_detail', (post.id,)),
+
+        )
+        for name, args in url_name:
+            response = self.author_client.get(
+                reverse(name, args=args)
+            )
+            if name == 'posts:post_detail':
+                self.assertEqual(response.context.get('post').image.name, post.image.name)
+            else:
+                self.assertEqual(response.context['page_obj'][0].image.name, post.image.name)
