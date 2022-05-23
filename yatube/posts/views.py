@@ -1,8 +1,8 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .forms import PostForm
-from .models import Group, Post, User
+from .forms import PostForm, CommentForm
+from .models import Group, Post, User, Comment
 from .utils import func_paginator
 
 
@@ -39,7 +39,10 @@ def profile(request, username):
 
 def post_detail(request, post_id):
     post = get_object_or_404(Post, id=post_id)
-    context = {'post': post}
+    form = CommentForm()
+    comments = post.comments.select_related('author').all()
+    #breakpoint()
+    context = {'post': post, 'form': form, 'comment': comments,}
     return render(request, 'posts/post_detail.html', context)
 
 
@@ -80,3 +83,16 @@ def post_delete(request, post_id):
         return redirect('posts:post_detail', post_id)
     post.delete()
     return redirect('posts:profile', request.user.username)
+
+@login_required
+def add_comment(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+    form = CommentForm(request.POST or None)
+    breakpoint()
+    if form.is_valid():
+        comment = form.save(commit=False)
+        comment.author = request.user
+        comment.post = post
+        comment.save()
+        breakpoint()
+    return redirect('posts:post_detail', post_id=post_id) 
