@@ -24,8 +24,7 @@
             <a class="nav-link link-light" href={% url 'users:logout' %}>Выйти</a>
           </li>
           <li>
-            Пользователь: 
-            <a href="{% url 'posts:profile' user.username %}">{{ user.username }}</a>
+            <a class="nav-link link-light " href="{% url 'posts:profile' user.username %}"> Пользователь: {{ user.username }}</a>
           </li>
         {% else %}
           <li class="nav-item"> 

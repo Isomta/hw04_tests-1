@@ -16,14 +16,14 @@ class PostForm(ModelForm):
 class CommentForm(ModelForm):
     class Meta():
         model = Comment
-        fields = ('post', 'author', 'text')
+        fields = ('text',)
         labels = {
-            'post': 'текст поста',
-            'author': 'Автор комментария',
+            # 'post': 'текст поста',
+            # 'author': 'Автор комментария',
             'text': 'Текст комментария',
         }
-        help_texts = {
-            'post': 'Текст поста',
-            'author': 'Автор комментария',
-            'text': 'Текст комментария',
-        }
+        # help_texts = {
+        #     'post': 'Текст поста',
+        #     'author': 'Автор комментария',
+        #     'text': 'Текст комментария',
+        # }

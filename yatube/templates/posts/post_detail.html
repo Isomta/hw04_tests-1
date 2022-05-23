@@ -40,7 +40,7 @@
               <a href="{% url 'posts:post_edit' post.id %}">Редактировать</a>
             </li>
             <li class="list-group-item d-flex justify-content-between align-items-center">
-              <a href="{% url 'posts:post_delete' post.id %}"><span style="color: red">Удалить</span></a>
+              <a class="btn btn-primary" href="{% url 'posts:post_delete' post.id %}" role="button">Удалить</a>
             </li>
           {% endif %}
         </ul>

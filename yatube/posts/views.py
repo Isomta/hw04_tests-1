@@ -42,7 +42,7 @@ def post_detail(request, post_id):
     form = CommentForm()
     comments = post.comments.select_related('author').all()
     #breakpoint()
-    context = {'post': post, 'form': form, 'comment': comments,}
+    context = {'post': post, 'form': form, 'comments': comments,}
     return render(request, 'posts/post_detail.html', context)
 
 
@@ -88,11 +88,9 @@ def post_delete(request, post_id):
 def add_comment(request, post_id):
     post = get_object_or_404(Post, id=post_id)
     form = CommentForm(request.POST or None)
-    breakpoint()
     if form.is_valid():
         comment = form.save(commit=False)
         comment.author = request.user
         comment.post = post
         comment.save()
-        breakpoint()
     return redirect('posts:post_detail', post_id=post_id) 
