@@ -8,7 +8,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
-from posts.models import Group, Post
+from posts.models import Comment, Group, Post
 from yatube.settings import CUT_LENGTH as CL
 
 User = get_user_model()
@@ -220,3 +220,19 @@ class PostsURLTests(TestCase):
                 self.assertEqual(response.context.get('post').image.name, post.image.name)
             else:
                 self.assertEqual(response.context['page_obj'][0].image.name, post.image.name)
+
+    def test_comment_login_required(self):
+        text = 'новый комментарий'
+
+        comment = Comment.objects.create(
+            post = self.post,
+            author = self.author,
+            text = text,
+        )
+        response = self.author_client.get(reverse('posts:post_detail', args=(self.post.id,)))
+        self.assertEqual(response.context.get('post').comments.get(id=comment.id).text, text)
+        response = self.client.get(reverse('posts:add_comment', args=(self.post.id,)))
+        post_id = self.post.id
+        url = reverse('users:login')
+        url = f'{url}?next=/posts/{post_id}/comment/'
+        self.assertRedirects(response, url)

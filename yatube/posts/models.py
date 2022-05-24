@@ -60,7 +60,7 @@ class Comment(models.Model):
         blank=True,
         null=True,
         related_name='comments',
-        verbose_name = 'Комментарий'
+        verbose_name = 'Комментарии'
     )
     author = models.ForeignKey(
         User,

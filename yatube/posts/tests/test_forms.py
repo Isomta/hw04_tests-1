@@ -1,12 +1,12 @@
 import shutil
 import tempfile
+
 from django.conf import settings
-from django.test import Client, TestCase, override_settings
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
-from posts.models import Group, Post, User
-
+from posts.models import Comment, Group, Post, User
 
 TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
@@ -85,3 +85,22 @@ class PostCreateFormTests(TestCase):
         )
         self.assertEqual(post.text, form_data['text'])
         self.assertEqual(post.group.title, self.group.title)
+
+    def test_create_comment(self):
+            comments_count = Comment.objects.count()
+            form_data = {
+                'post': self.post,
+                'author': self.user,
+                'text': 'text',
+            }
+            response = self.author_client.post(
+                reverse('posts:add_comment', args=(self.post.id,)),
+                data=form_data,
+                follow=True,
+            )
+            self.assertRedirects(
+                response,
+                reverse('posts:post_detail', args=(self.post.id,))
+            )
+            self.assertEqual(Comment.objects.count(), comments_count+1)
+
