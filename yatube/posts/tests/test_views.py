@@ -4,11 +4,12 @@ import tempfile
 from django import forms
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
-
 from posts.models import Comment, Group, Post
+
 from yatube.settings import CUT_LENGTH as CL
 
 User = get_user_model()
@@ -236,3 +237,15 @@ class PostsURLTests(TestCase):
         url = reverse('users:login')
         url = f'{url}?next=/posts/{post_id}/comment/'
         self.assertRedirects(response, url)
+
+    def test_cache(self):
+        cache.clear()
+        self.client.get(reverse('posts:index'))
+        Post.objects.create(
+            text='8'*8,
+            author=self.author,
+        )
+        response1 = self.client.get(reverse('posts:index'))
+        cache.clear()
+        response2 = self.client.get(reverse('posts:index'))
+        self.assertNotEqual(response1.content, response2.content)
