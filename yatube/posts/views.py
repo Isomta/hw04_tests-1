@@ -36,14 +36,17 @@ def profile(request, username):
             user=request.user,
             author=person,
         ).exists()
-        followings = Follow.objects.filter(user=request.user).count()
-        followers = Follow.objects.filter(author=request.user).count()
+    following = follower = 0
+    if request.user.username:
+        following = Follow.objects.filter(user=request.user).count()
+        follower = Follow.objects.filter(author=request.user).count()
     posts = person.posts.select_related('group').all()
     page_obj = func_paginator(request, posts)
     context = {
         'page_obj': page_obj,
         'author': person,
-        'following': following
+        'following': following,
+        'follower': follower,
     }
     return render(request, 'posts/profile.html', context)
 

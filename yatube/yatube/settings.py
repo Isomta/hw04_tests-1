@@ -18,6 +18,8 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
     '[::1]',
     'testserver',
+    'shiv.pythonanywhere.com',
+    'www.shiv.pythonanywhere.com',
 ] 
 
 CUT_LENGTH = 10
