@@ -3,7 +3,11 @@
   <div class="card my-4">
     <h5 class="card-header">Добавить комментарий:</h5>
     <div class="card-body">
-      <form method="post" action="{% url 'posts:add_comment' post.id %}">
+      {% if not form.instance.pk %}
+        <form method="post" action="{% url 'posts:add_comment' post.id %}">
+      {% else %}
+        <form method="post" enctype="multipart/form-data" action="{% url 'posts:comment_edit' form.instance.pk %}">
+      {% endif %}      
         {% csrf_token %}      
         <div class="form-group mb-2">
           {{ form.text|addclass:"form-control" }}
@@ -16,14 +20,21 @@
 {% for comment in comments %}
   <div class="media mb-4 border rounded main-div" style="padding: 20px;">
     <div class="media-body">
-      <h5 class="mt-0">
+      <h7 class="mt-0">
         <a href="{% url 'posts:profile' comment.author.username %}">
           {{ comment.author.username }}
         </a>
-      </h5>
+        <p>{{ comment.created}}</p>
+      </h7>
+      <hr>
       <p>
         {{ comment.text }}
       </p>
+      <hr>
+      {% if user == comment.author %}
+          <a class="btn btn-outline-primary" href="{% url 'posts:comment_edit' comment.id %}">Редактировать</a>
+          <a class="btn btn-outline-secondary" href="{% url 'posts:comment_delete' comment.id %}" role="button"><span style="color: red">Удалить</span></a>
+      {% endif %}
     </div>
   </div>
 {% endfor %}

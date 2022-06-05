@@ -3,12 +3,20 @@
 <ul class="nav nav-tabs">
   <li class="nav-item">
     <a class="nav-link {% if view_name  == 'posts:index' %}active{% endif %}" href="/">
+      {% if view_name  == 'posts:index' %}
+      😏Все авторы😏
+    {% else %}
       Все авторы
+    {% endif %}
     </a>
   </li>
   <li class="nav-item">
     <a class="nav-link {% if view_name  == 'posts:follow_index' %}active{% endif %}" href="/follow/">
-      Избранные авторы
+      {% if view_name  == 'posts:follow_index' %}
+      🥰Избранные авторы🥰
+      {% else %}
+        Избранные авторы
+      {% endif %}
     </a>
   </li>
 </ul>

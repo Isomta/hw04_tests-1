@@ -105,6 +105,31 @@ def add_comment(request, post_id):
         comment.save()
     return redirect('posts:post_detail', post_id=post_id)
 
+@login_required
+def comment_delete(request, comment_id):
+    comment = get_object_or_404(Comment, id=comment_id)
+    if comment.author != request.user:
+        return redirect('posts:post_detail', post_id=comment.post.id)
+    comment.delete()
+    return redirect('posts:post_detail', post_id=comment.post.id)
+
+@login_required
+def comment_edit(request, comment_id):
+    comment = get_object_or_404(Comment, id=comment_id)
+    post = get_object_or_404(Post, id=comment.post.id)
+    comments = post.comments.select_related('author').all()
+    if comment.author != request.user:
+        return redirect('posts:post_detail', post_id=comment.post.id)
+    form = CommentForm(
+        request.POST or None,
+        instance=comment,
+    )
+    if not form.is_valid():
+        context = {'post': post, 'form': form, 'comments': comments,}
+        return render(request, 'posts/post_detail.html', context)
+    form.save()
+    return redirect('posts:post_detail', post_id=comment.post.id)
+
 
 @login_required
 def follow_index(request):
