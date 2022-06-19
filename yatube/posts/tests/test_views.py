@@ -78,6 +78,20 @@ class PostsURLTests(TestCase):
             response, (f'/profile/{self.author.username}/')
         )
 
+    def func(self, request, bool=False):
+        response = self.author_client.get(reverse(request))
+        if bool:
+            response.context['page_obj'].first()
+        else:
+            response.context['page_obj'].first()            
+
+    def test_correct_context(self):
+        response = self.author_client.get(reverse('posts:index') + '?page=2')
+        self.assertEqual(
+            len(response.context['page_obj'].object_list),
+            INDEX_PAGE2_COUNT
+        )
+
     def test_views_posts_correct_context(self):
         response = self.author_client.get(reverse('posts:index') + '?page=2')
         self.assertEqual(

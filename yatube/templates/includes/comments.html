@@ -31,9 +31,9 @@
         {{ comment.text }}
       </p>
       <hr>
-      {% if user == comment.author %}
-          <a class="btn btn-outline-primary" href="{% url 'posts:comment_edit' comment.id %}">Редактировать</a>
-          <a class="btn btn-outline-secondary" href="{% url 'posts:comment_delete' comment.id %}" role="button"><span style="color: red">Удалить</span></a>
+      {% if user == comment.author or user == post.author %}
+        <a class="btn btn-outline-primary" href="{% url 'posts:comment_edit' comment.id %}">Редактировать</a>
+        <a class="btn btn-outline-secondary" href="{% url 'posts:comment_delete' comment.id %}" role="button"><span style="color: red">Удалить</span></a>
       {% endif %}
     </div>
   </div>

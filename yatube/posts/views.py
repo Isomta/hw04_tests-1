@@ -36,17 +36,11 @@ def profile(request, username):
             user=request.user,
             author=person,
         ).exists()
-    following = follower = 0
-    if request.user.username:
-        following = Follow.objects.filter(user=request.user).count()
-        follower = Follow.objects.filter(author=request.user).count()
     posts = person.posts.select_related('group').all()
     page_obj = func_paginator(request, posts)
     context = {
         'page_obj': page_obj,
         'author': person,
-        'following': following,
-        'follower': follower,
     }
     return render(request, 'posts/profile.html', context)
 
@@ -111,7 +105,7 @@ def add_comment(request, post_id):
 @login_required
 def comment_delete(request, comment_id):
     comment = get_object_or_404(Comment, id=comment_id)
-    if comment.author != request.user:
+    if comment.author != request.user and request.user != comment.post.author:
         return redirect('posts:post_detail', post_id=comment.post.id)
     comment.delete()
     return redirect('posts:post_detail', post_id=comment.post.id)
@@ -119,7 +113,7 @@ def comment_delete(request, comment_id):
 @login_required
 def comment_edit(request, comment_id):
     comment = get_object_or_404(Comment, id=comment_id)
-    post = get_object_or_404(Post, id=comment.post.id)
+    post = comment.post
     comments = post.comments.select_related('author').all()
     if comment.author != request.user:
         return redirect('posts:post_detail', post_id=comment.post.id)
@@ -136,11 +130,7 @@ def comment_edit(request, comment_id):
 
 @login_required
 def follow_index(request):
-    posts_list = (
-        Post.objects.prefetch_related('author')
-        .prefetch_related('author__following')
-        .filter(author__following__user=request.user)
-    )
+    posts_list =  Post.objects.select_related('author', 'group').filter(author__following__user=request.user)
     page_obj = func_paginator(request, posts_list)
     context = {
         'page_obj': page_obj,
@@ -152,13 +142,13 @@ def profile_follow(request, username):
     user = request.user
     author = get_object_or_404(User, username=username)
     if user == author:
-        return redirect('posts:index')
+        return redirect('posts:profile', username)
     Follow.objects.get_or_create(user=user, author=author)
-    return redirect('posts:follow_index')
+    return redirect('posts:profile', username)
 
 @login_required
 def profile_unfollow(request, username):
     user = request.user
     author = get_object_or_404(User, username=username)
     Follow.objects.filter(user=user, author=author).delete()
-    return redirect('posts:index')
+    return redirect('posts:profile', username)

@@ -102,4 +102,3 @@ class PostCreateFormTests(TestCase):
                 reverse('posts:post_detail', args=(self.post.id,))
             )
             self.assertEqual(Comment.objects.count(), comments_count+1)
-
