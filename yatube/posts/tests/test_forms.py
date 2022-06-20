@@ -86,19 +86,32 @@ class PostCreateFormTests(TestCase):
         self.assertEqual(post.group.title, self.group.title)
 
     def test_create_comment(self):
-            comments_count = Comment.objects.count()
-            form_data = {
-                'post': self.post,
-                'author': self.user,
-                'text': 'text',
-            }
-            response = self.author_client.post(
-                reverse('posts:add_comment', args=(self.post.id,)),
-                data=form_data,
-                follow=True,
-            )
-            self.assertRedirects(
-                response,
-                reverse('posts:post_detail', args=(self.post.id,))
-            )
-            self.assertEqual(Comment.objects.count(), comments_count+1)
+        comments_count = Comment.objects.count()
+        form_data = {
+            'post': self.post,
+            'author': self.user,
+            'text': 'text',
+        }
+        response = self.author_client.post(
+            reverse('posts:add_comment', args=(self.post.id,)),
+            data=form_data,
+            follow=True,
+        )
+        self.assertRedirects(
+            response,
+            reverse('posts:post_detail', args=(self.post.id,))
+        )
+        self.assertEqual(Comment.objects.count(), comments_count+1)
+
+    def test_comment_login_required(self):
+        form_data = {
+            'post': self.post,
+            'author': self.user,
+            'text': 'text',
+        }
+        comments_count = Comment.objects.count()
+        self.client.get(reverse('posts:add_comment', args=(self.post.id,)),
+            data=form_data,
+            follow=True,                           
+        )
+        self.assertEqual(Comment.objects.count(), comments_count)

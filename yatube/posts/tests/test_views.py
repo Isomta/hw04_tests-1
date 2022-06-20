@@ -44,9 +44,9 @@ class PostsURLTests(TestCase):
             )
         for _ in range(NO_GROUP_COUNT):
             cls.post_no_group = Post.objects.create(
-                    text=POST_TEXT_NO_GROUP,
-                    author=cls.another_author,
-                )
+                text=POST_TEXT_NO_GROUP,
+                author=cls.another_author,
+            )
 
     @classmethod
     def tearDownClass(cls):
@@ -238,7 +238,6 @@ class PostsURLTests(TestCase):
 
     def test_comment_login_required(self):
         text = 'новый комментарий'
-
         comment = Comment.objects.create(
             post = self.post,
             author = self.author,
@@ -252,6 +251,18 @@ class PostsURLTests(TestCase):
         url = f'{url}?next=/posts/{post_id}/comment/'
         self.assertRedirects(response, url)
 
+
+class PostsTestsAnother(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.author = User.objects.create_user(username='shav')
+        for _ in range(GROUP_COUNT+NO_GROUP_COUNT):
+            cls.post = Post.objects.create(
+                text=POST_TEXT,
+                author=cls.author,
+            )
+
     def test_cache(self):
         cache.clear()
         self.client.get(reverse('posts:index'))
@@ -263,3 +274,13 @@ class PostsURLTests(TestCase):
         cache.clear()
         response2 = self.client.get(reverse('posts:index'))
         self.assertNotEqual(response1.content, response2.content)
+
+    def test_paginator(self):
+        tuple = (('?page=1', 10), ('?page=2', 4))
+        def func(self, page, count):
+            response = self.client.get(reverse('posts:index') + page)
+            page_post_count = len(response.context['page_obj'].object_list)
+            self.assertEqual(page_post_count, count)
+        for page, count in tuple:
+            with self.subTest(page=page):
+                func(self, page, count)
