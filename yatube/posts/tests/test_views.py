@@ -8,8 +8,8 @@ from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
-from posts.models import Comment, Group, Post
 
+from posts.models import Comment, Group, Post
 from yatube.settings import CUT_LENGTH as CL
 
 User = get_user_model()
@@ -251,12 +251,16 @@ class PostsURLTests(TestCase):
         url = f'{url}?next=/posts/{post_id}/comment/'
         self.assertRedirects(response, url)
 
-
 class PostsTestsAnother(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
         cls.author = User.objects.create_user(username='shav')
+        cls.group = Group.objects.create(
+            title='Название группы 1',
+            slug='group1',
+            description='Группа1',
+        )
         for _ in range(GROUP_COUNT+NO_GROUP_COUNT):
             cls.post = Post.objects.create(
                 text=POST_TEXT,
@@ -285,3 +289,23 @@ class PostsTestsAnother(TestCase):
         for page, count in tuple:
             with self.subTest(page=page):
                 func(self, page, count)
+
+    def test_post_correct_group(self):
+        response = self.client.get(reverse('posts:group_posts', args=(self.group.slug,)))
+        count = response.context['page_obj'].paginator.count
+        post = Post.objects.create(
+            text='8'*8,
+            author=self.author,
+            group=self.group,
+        )
+        group = Group.objects.create(
+            title='Название группы 2',
+            slug='group2',
+            description='Группа2',
+        )
+        response1 = self.client.get(reverse('posts:group_posts', args=(group.slug,)))
+        count1 = response1.context['page_obj'].paginator.count
+        response2 = self.client.get(reverse('posts:group_posts', args=(self.group.slug,)))
+        count2 = response2.context['page_obj'].paginator.count
+        self.assertEqual(count+1, count2)
+        self.assertEqual(count1, 0)

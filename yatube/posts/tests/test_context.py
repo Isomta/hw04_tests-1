@@ -1,6 +1,5 @@
 import shutil
 import tempfile
-import datetime as dt
 
 from django import forms
 from django.conf import settings
@@ -9,45 +8,29 @@ from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
-from posts.models import Comment, Group, Post
+from posts.models import Comment, Group, Post, User
 
-from yatube.settings import CUT_LENGTH as CL
 
-User = get_user_model()
-
-POST_TEXT = '0'*20
-POST_TEXT_NO_GROUP = 'Нет группы'
-GROUP_COUNT = 11
-CL = 10
-NO_GROUP_COUNT = 3
-INDEX_PAGE2_COUNT = GROUP_COUNT + NO_GROUP_COUNT - CL
-GROUP_PAGE2_COUNT = GROUP_COUNT - CL
 TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
 
 @override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
-class PostsURLTests(TestCase):
+class PostsTestsTemplate(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
         cls.author = User.objects.create_user(username='shav')
-        cls.another_author = User.objects.create_user(username='sam')
         cls.group = Group.objects.create(
             title='Название группы',
             slug='slug-group',
             description='Описание группы',
         )
-        for _ in range(GROUP_COUNT):
-            cls.post = Post.objects.create(
-                text=POST_TEXT,
-                author=cls.author,
-                group=cls.group,
-            )
-        for _ in range(NO_GROUP_COUNT):
-            cls.post_no_group = Post.objects.create(
-                text=POST_TEXT_NO_GROUP,
-                author=cls.another_author,
-            )
+        cls.post = Post.objects.create(
+            text='Text post',
+            author=cls.author,
+            group=cls.group,
+        )
+
 
     @classmethod
     def tearDownClass(cls):
@@ -80,19 +63,33 @@ class PostsURLTests(TestCase):
         )
 
 
-###
+class PostsContextTests(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.author = User.objects.create_user(username='shav')
+        cls.group = Group.objects.create(
+            title='Название группы',
+            slug='slug-group',
+            description='Описание группы',
+        )
+        cls.post = Post.objects.create(
+            text='Text post',
+            author=cls.author,
+            group=cls.group,
+        )
+
     def func(self, request, bool=False):
-        response = self.author_client.get(request)
+        response = self.client.get(request)
         if bool:
             post = response.context['post']
         else:
             post = response.context['page_obj'][0]
-        test_post = Post.objects.get(id=post.id)
-        self.assertEqual(post.id, test_post.id)
-        self.assertEqual(post.text, test_post.text)
-        self.assertEqual(post.group, test_post.group)
-        self.assertEqual(post.author, test_post.author)
-        self.assertEqual(post.pub_date, test_post.pub_date)
+        self.assertEqual(post.id, self.post.id)
+        self.assertEqual(post.text, self.post.text)
+        self.assertEqual(post.group, self.post.group)
+        self.assertEqual(post.author, self.post.author)
+        self.assertEqual(post.pub_date, self.post.pub_date)
 
     def test_context(self):
         execute = (
