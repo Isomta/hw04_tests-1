@@ -77,7 +77,6 @@ class PostsURLTests(TestCase):
                 response_name = self.author_client.get(
                     reverse(address, args=args)
                 )
-
                 self.func_assertEqualTemplateUsed(response_name)
                 self.assertEqual(reverse(address, args=args), hard)
 

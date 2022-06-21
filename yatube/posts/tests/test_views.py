@@ -264,16 +264,17 @@ class PostsTestsAnother(TestCase):
             )
 
     def test_cache(self):
-        cache.clear()
-        self.client.get(reverse('posts:index'))
-        Post.objects.create(
+        post = Post.objects.create(
             text='8'*8,
             author=self.author,
         )
         response1 = self.client.get(reverse('posts:index'))
-        cache.clear()
+        post.delete()
         response2 = self.client.get(reverse('posts:index'))
-        self.assertNotEqual(response1.content, response2.content)
+        self.assertEqual(response1.content, response2.content)
+        cache.clear()
+        response3 = self.client.get(reverse('posts:index'))
+        self.assertNotEqual(response1.content, response3.content)
 
     def test_paginator(self):
         tuple = (('?page=1', 10), ('?page=2', 4))

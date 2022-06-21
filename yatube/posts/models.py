@@ -76,6 +76,11 @@ class Comment(models.Model):
         'Дата комментария',
         auto_now_add=True,
     )
+    
+    class Meta:
+        ordering = ('post',)
+        verbose_name_plural = 'Комментарии'
+        
     def __str__(self):
         return self.text[:15]
 
@@ -92,3 +97,10 @@ class Follow(models.Model):
         verbose_name = 'Подписчик',
         related_name='following',
     )
+    
+    class Meta:
+        ordering = ('author',)
+        verbose_name_plural = 'Подписки'
+
+    def __str__(self):
+        return f'{self.author}<-{self.user}'
