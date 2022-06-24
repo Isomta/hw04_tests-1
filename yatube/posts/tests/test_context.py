@@ -73,10 +73,30 @@ class PostsContextTests(TestCase):
             slug='slug-group',
             description='Описание группы',
         )
+        test_jpg = (            
+             b'\x47\x49\x46\x38\x39\x61\x02\x00'
+             b'\x01\x00\x80\x00\x00\x00\x00\x00'
+             b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
+             b'\x00\x00\x00\x2C\x00\x00\x00\x00'
+             b'\x02\x00\x01\x00\x00\x02\x02\x0C'
+             b'\x0A\x00\x3B'
+        )
+        name='test.jpg'
+        uploaded = SimpleUploadedFile(
+            name=name,
+            content=test_jpg,
+            content_type='image/jpg'
+        )
         cls.post = Post.objects.create(
             text='Text post',
             author=cls.author,
             group=cls.group,
+            image=uploaded,
+        )
+        cls.comment = Comment.objects.create(
+            post=cls.post,
+            author=cls.author,
+            text='comment text'
         )
 
     def func(self, request, bool=False):
@@ -88,8 +108,10 @@ class PostsContextTests(TestCase):
         self.assertEqual(post.id, self.post.id)
         self.assertEqual(post.text, self.post.text)
         self.assertEqual(post.group, self.post.group)
+        self.assertEqual(post.image, self.post.image)
         self.assertEqual(post.author, self.post.author)
         self.assertEqual(post.pub_date, self.post.pub_date)
+        self.assertEqual(post.comments.first(), self.comment)
 
     def test_context(self):
         execute = (
