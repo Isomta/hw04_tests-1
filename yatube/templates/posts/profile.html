@@ -7,7 +7,7 @@
     <h5>Подписчиков: {{ author.following.count }}</h5>
     <h5>Подписан: {{ author.follower.count }}</h5>
       {% if user != author %}  
-        {% if author.following.count != 0 %}
+        {% if following %}
           <a
             class="btn btn-lg btn-light"
             href="{% url 'posts:profile_unfollow' author.username %}" role="button"

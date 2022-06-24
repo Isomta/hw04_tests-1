@@ -29,6 +29,7 @@ def group_posts(request, slug):
 
 def profile(request, username):
     person = get_object_or_404(User, username=username)
+    following = False
     if request.user.is_authenticated:
         following = Follow.objects.filter(
             user=request.user,
@@ -39,6 +40,7 @@ def profile(request, username):
     context = {
         'page_obj': page_obj,
         'author': person,
+        'following' : following
     }
     return render(request, 'posts/profile.html', context)
 
