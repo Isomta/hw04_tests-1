@@ -8,8 +8,8 @@ from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
-
 from posts.models import Comment, Group, Post
+
 from yatube.settings import CUT_LENGTH as CL
 
 User = get_user_model()
@@ -78,95 +78,7 @@ class PostsURLTests(TestCase):
             response, (f'/profile/{self.author.username}/')
         )
 
-    def func(self, request, bool=False):
-        response = self.author_client.get(reverse(request))
-        if bool:
-            response.context['page_obj'].first()
-        else:
-            response.context['page_obj'].first()            
-
-    def test_correct_context(self):
-        response = self.author_client.get(reverse('posts:index') + '?page=2')
-        self.assertEqual(
-            len(response.context['page_obj'].object_list),
-            INDEX_PAGE2_COUNT
-        )
-
-    def test_views_posts_correct_context(self):
-        response = self.author_client.get(reverse('posts:index') + '?page=2')
-        self.assertEqual(
-            len(response.context['page_obj'].object_list),
-            INDEX_PAGE2_COUNT
-        )
-
-    def test_views_group_correct_context(self):
-        response = self.author_client.get(reverse(
-            'posts:group_posts',
-            kwargs={'slug': self.group.slug}) + '?page=2'
-        )
-        self.assertEqual(
-            len(response.context['page_obj'].object_list),
-            GROUP_PAGE2_COUNT
-        )
-        for item in range(len(response.context)):
-            self.assertEqual(self.post.group, response.context[item]['group'])
-        response = self.author_client.get(reverse(
-            'posts:group_posts',
-            kwargs={'slug': self.group.slug})
-        )
-        post_count = Post.objects.all().count()
-        self.assertEqual(post_count, GROUP_COUNT + NO_GROUP_COUNT)
-        group_count = Post.objects.filter(group_id=self.group.id).count()
-        self.assertEqual(group_count, GROUP_COUNT)
-
-    def test_views_profile_correct_context(self):
-        another_author_post_count = Post.objects.filter(
-            author=self.another_author.id
-        ).count()
-        self.assertEqual(another_author_post_count, NO_GROUP_COUNT)
-        author_post_count = Post.objects.filter(author=self.author.id).count()
-        self.assertEqual(author_post_count, GROUP_COUNT)
-        response = self.author_client.get(reverse(
-            'posts:profile',
-            kwargs={'username': self.author.username}) + '?page=2'
-        )
-        self.assertEqual(
-            len(response.context['page_obj'].object_list),
-            GROUP_PAGE2_COUNT
-        )
-
-    def test_views_post_detail_correct_context(self):
-        response = self.author_client.get(reverse(
-            'posts:post_detail',
-            kwargs={'post_id': 1})
-        )
-        self.assertEqual(response.context.get('post').text, POST_TEXT)
-
-    def test_views_post_edit_form_correct_context(self):
-        form_fields = {
-            'text': forms.fields.CharField,
-            'group': forms.models.ModelChoiceField,
-        }
-        response = self.author_client.get(reverse(
-            'posts:post_edit',
-            kwargs={'post_id': 1})
-        )
-        for value, expected in form_fields.items():
-            with self.subTest(value=value):
-                form_field = response.context.get('form').fields.get(value)
-                self.assertIsInstance(form_field, expected)
-
-    def test_views_post_create_form_correct_context(self):
-        form_fields = {
-            'text': forms.fields.CharField,
-            'group': forms.models.ModelChoiceField,
-        }
-        response = self.author_client.get(reverse('posts:post_create'))
-        for value, expected in form_fields.items():
-            with self.subTest(value=value):
-                form_field = response.context.get('form').fields.get(value)
-                self.assertIsInstance(form_field, expected)
-
+    
     def test_views_post_create(self):
         new_user = User.objects.create_user(username='new')
         group = Group.objects.create(
@@ -198,44 +110,6 @@ class PostsURLTests(TestCase):
         )
         self.assertNotEqual(response.context['page_obj'][0].group, post.group)
 
-    def test_post_has_image(self):
-        test_jpg = (            
-             b'\x47\x49\x46\x38\x39\x61\x02\x00'
-             b'\x01\x00\x80\x00\x00\x00\x00\x00'
-             b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
-             b'\x00\x00\x00\x2C\x00\x00\x00\x00'
-             b'\x02\x00\x01\x00\x00\x02\x02\x0C'
-             b'\x0A\x00\x3B'
-        )
-        name='test.jpg'
-        uploaded = SimpleUploadedFile(
-            name=name,
-            content=test_jpg,
-            content_type='image/jpg'
-        )
-        Post.objects.create(
-                text=POST_TEXT,
-                author=self.author,
-                group=self.group,
-                image = uploaded,
-            )
-        post = Post.objects.first()
-        url_name = (
-            ('posts:index', None),
-            ('posts:profile', (self.author.username,)),
-            ('posts:group_posts', (self.group.slug,)),
-            ('posts:post_detail', (post.id,)),
-
-        )
-        for name, args in url_name:
-            response = self.author_client.get(
-                reverse(name, args=args)
-            )
-            if name == 'posts:post_detail':
-                self.assertEqual(response.context.get('post').image.name, post.image.name)
-            else:
-                self.assertEqual(response.context['page_obj'][0].image.name, post.image.name)
-
     def test_comment_login_required(self):
         text = 'новый комментарий'
         comment = Comment.objects.create(
@@ -251,7 +125,7 @@ class PostsURLTests(TestCase):
         url = f'{url}?next=/posts/{post_id}/comment/'
         self.assertRedirects(response, url)
 
-class PostsTestsAnother(TestCase):
+class PostsTests(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -293,7 +167,7 @@ class PostsTestsAnother(TestCase):
     def test_post_correct_group(self):
         response = self.client.get(reverse('posts:group_posts', args=(self.group.slug,)))
         count = response.context['page_obj'].paginator.count
-        post = Post.objects.create(
+        Post.objects.create(
             text='8'*8,
             author=self.author,
             group=self.group,

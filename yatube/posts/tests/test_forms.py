@@ -2,10 +2,10 @@ import shutil
 import tempfile
 
 from django.conf import settings
+from django import forms
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
-
 from posts.models import Comment, Group, Post, User
 
 TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
@@ -116,3 +116,29 @@ class PostCreateFormTests(TestCase):
             follow=True,                           
         )
         self.assertEqual(Comment.objects.count(), comments_count)
+
+    def test_views_post_create_form_correct_context(self):
+        form_fields = {
+            'text': forms.fields.CharField,
+            'group': forms.models.ModelChoiceField,
+        }
+        response = self.author_client.get(reverse('posts:post_create'))
+        for value, expected in form_fields.items():
+            with self.subTest(value=value):
+                form_field = response.context.get('form').fields.get(value)
+                self.assertIsInstance(form_field, expected)
+
+    def test_views_post_edit_form_correct_context(self):
+        form_fields = {
+            'text': forms.fields.CharField,
+            'group': forms.models.ModelChoiceField,
+        }
+        response = self.author_client.get(reverse(
+            'posts:post_edit',
+            kwargs={'post_id': 1})
+        )
+        for value, expected in form_fields.items():
+            with self.subTest(value=value):
+                form_field = response.context.get('form').fields.get(value)
+                self.assertIsInstance(form_field, expected)
+

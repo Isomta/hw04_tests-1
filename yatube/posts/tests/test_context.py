@@ -1,17 +1,14 @@
 import shutil
 import tempfile
 
-from django import forms
 from django.conf import settings
-from django.contrib.auth import get_user_model
-from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
-from posts.models import Comment, Group, Post, User
-
+from posts.models import Comment, Follow, Group, Post, User
 
 TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
+POST_COUNT = 12
 
 
 @override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
@@ -31,12 +28,11 @@ class PostsTestsTemplate(TestCase):
             group=cls.group,
         )
 
-
     @classmethod
     def tearDownClass(cls):
         super().tearDownClass()
         shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
-        
+
     def setUp(self):
         self.author_client = Client()
         self.author_client.force_login(self.author)
@@ -68,12 +64,13 @@ class PostsContextTests(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.author = User.objects.create_user(username='shav')
+        cls.user = User.objects.create_user(username='mav')
         cls.group = Group.objects.create(
             title='Название группы',
             slug='slug-group',
             description='Описание группы',
         )
-        test_jpg = (            
+        test_jpg = (
              b'\x47\x49\x46\x38\x39\x61\x02\x00'
              b'\x01\x00\x80\x00\x00\x00\x00\x00'
              b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
@@ -81,12 +78,18 @@ class PostsContextTests(TestCase):
              b'\x02\x00\x01\x00\x00\x02\x02\x0C'
              b'\x0A\x00\x3B'
         )
-        name='test.jpg'
         uploaded = SimpleUploadedFile(
-            name=name,
+            name='test.jpg',
             content=test_jpg,
             content_type='image/jpg'
         )
+        for i in range(POST_COUNT):
+            Post.objects.create(
+                text=f'Text post {i}',
+                author=cls.author,
+                group=cls.group,
+                image=uploaded,
+            )
         cls.post = Post.objects.create(
             text='Text post',
             author=cls.author,
@@ -98,13 +101,25 @@ class PostsContextTests(TestCase):
             author=cls.author,
             text='comment text'
         )
+        cls.follow = Follow.objects.create(
+            user=cls.user,
+            author=cls.author
+        )
 
     def func(self, request, bool=False):
         response = self.client.get(request)
         if bool:
             post = response.context['post']
         else:
-            post = response.context['page_obj'][0]
+            page_obj = response.context['page_obj']
+            post = page_obj[0]
+            self.assertEqual(len(page_obj.object_list), 10)
+            self.assertEqual(
+                len(
+                    self.client.get(
+                        request + '?page=2'
+                    ).context['page_obj'].object_list
+                ), 3)
         self.assertEqual(post.id, self.post.id)
         self.assertEqual(post.text, self.post.text)
         self.assertEqual(post.group, self.post.group)
@@ -112,6 +127,7 @@ class PostsContextTests(TestCase):
         self.assertEqual(post.author, self.post.author)
         self.assertEqual(post.pub_date, self.post.pub_date)
         self.assertEqual(post.comments.first(), self.comment)
+        self.assertEqual(post.author.following.first(), self.follow)
 
     def test_context(self):
         execute = (
